@@ -1,0 +1,120 @@
+import React from 'react';
+import type { MetricsSummary, CoverageStats } from '../types/api';
+import { formatMW, formatSignedMW, formatPercent, formatMWh } from '../utils/formatters';
+
+interface KpiGridProps {
+  metrics: MetricsSummary;
+  coverage: CoverageStats;
+  viewMode: 'hourly' | 'half_hourly';
+}
+
+export const KpiGrid: React.FC<KpiGridProps> = ({ metrics, coverage, viewMode }) => {
+  const isOverforecast = metrics.bias_mw > 0;
+  const rmseToMaeRatio = metrics.mae_mw > 0 ? (metrics.rmse_mw / metrics.mae_mw).toFixed(2) : '1.00';
+
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-3.5">
+      {/* 1. Hero Bento Card: Mean Absolute Error (MAE) */}
+      <div className="lg:col-span-2 bg-white border border-[#E7E5DE] rounded-xl p-4 shadow-2xs flex flex-col justify-between">
+        <div>
+          <div className="flex items-center justify-between text-xs text-[#777C76] mb-1.5">
+            <span className="font-semibold text-[#202521] uppercase tracking-wider text-[11px]">
+              Mean Absolute Error (MAE)
+            </span>
+            <span className="text-[11px] font-mono font-medium px-2 py-0.5 rounded-full bg-[#176B4D]/10 text-[#176B4D]">
+              nMAE: {formatPercent(metrics.nmae_pct)}
+            </span>
+          </div>
+
+          <div className="text-3xl font-bold font-mono tracking-tight text-[#202521] mt-1">
+            {formatMW(metrics.mae_mw)}
+          </div>
+        </div>
+
+        <div className="text-[11px] text-[#777C76] mt-3 pt-2.5 border-t border-[#E7E5DE]/80 flex items-center justify-between">
+          <span>Average hourly volume miss</span>
+          <span className="font-mono text-[#202521]">
+            P50: {formatMW(metrics.quantiles?.p50 ?? 0)}
+          </span>
+        </div>
+      </div>
+
+      {/* 2. Bento Card: Forecast Bias & Position Exposure */}
+      <div className="lg:col-span-2 bg-white border border-[#E7E5DE] rounded-xl p-4 shadow-2xs flex flex-col justify-between">
+        <div>
+          <div className="flex items-center justify-between text-xs text-[#777C76] mb-1.5">
+            <span className="font-semibold text-[#202521] uppercase tracking-wider text-[11px]">
+              Forecast Bias
+            </span>
+            <span
+              className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${
+                isOverforecast
+                  ? 'bg-amber-50 text-amber-900 border border-amber-200'
+                  : 'bg-blue-50 text-blue-900 border border-blue-200'
+              }`}
+            >
+              {isOverforecast ? 'SHORT Position (SBP Risk)' : 'LONG Position (SSP Discount)'}
+            </span>
+          </div>
+
+          <div
+            className={`text-3xl font-bold font-mono tracking-tight mt-1 ${
+              isOverforecast ? 'text-amber-800' : 'text-[#2B6CB0]'
+            }`}
+          >
+            {formatSignedMW(metrics.bias_mw)}
+          </div>
+        </div>
+
+        <div className="text-[11px] text-[#777C76] mt-3 pt-2.5 border-t border-[#E7E5DE]/80 truncate">
+          {isOverforecast
+            ? 'Deficit cashed out at System Buy Price (SBP)'
+            : 'Surplus cashed out at System Sell Price (SSP)'}
+        </div>
+      </div>
+
+      {/* 3. Volatility & Peak Error (RMSE) */}
+      <div className="lg:col-span-1 bg-white border border-[#E7E5DE] rounded-xl p-4 shadow-2xs flex flex-col justify-between">
+        <div>
+          <div className="flex items-center justify-between text-xs text-[#777C76] mb-1.5">
+            <span className="font-semibold text-[#202521] uppercase tracking-wider text-[11px]">
+              RMSE
+            </span>
+          </div>
+
+          <div className="text-xl font-bold font-mono tracking-tight text-[#202521] mt-1">
+            {formatMW(metrics.rmse_mw)}
+          </div>
+        </div>
+
+        <div className="text-[11px] text-[#777C76] mt-3 pt-2.5 border-t border-[#E7E5DE]/80">
+          Penalty: <span className="font-mono font-medium text-[#202521]">{rmseToMaeRatio}x</span> MAE
+        </div>
+      </div>
+
+      {/* 4. Generation Outturn & Interval Coverage */}
+      <div className="lg:col-span-1 bg-white border border-[#E7E5DE] rounded-xl p-4 shadow-2xs flex flex-col justify-between">
+        <div>
+          <div className="flex items-center justify-between text-xs text-[#777C76] mb-1.5">
+            <span className="font-semibold text-[#202521] uppercase tracking-wider text-[11px]">
+              Mean Outturn
+            </span>
+          </div>
+
+          <div className="text-xl font-bold font-mono tracking-tight text-[#202521] mt-1">
+            {formatMW(metrics.mean_actual_mw)}
+          </div>
+        </div>
+
+        <div className="text-[11px] text-[#777C76] mt-3 pt-2.5 border-t border-[#E7E5DE]/80 flex items-center justify-between">
+          <span title={`Total generation delivered across ${coverage.evaluated_intervals} ${viewMode === 'hourly' ? 'hours' : 'settlement periods'}`}>
+            Total: {formatMWh(metrics.total_energy_mwh || metrics.total_energy_delivered_mwh)}
+          </span>
+          <span className="font-mono text-[#176B4D] font-medium" title={`${coverage.evaluated_intervals}/${coverage.total_intervals || coverage.total_expected_intervals} ${viewMode === 'hourly' ? 'hours' : 'SPs'} evaluated`}>
+            {formatPercent(coverage.coverage_pct)}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+};
