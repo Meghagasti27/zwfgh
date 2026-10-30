@@ -25,18 +25,6 @@ A UK electricity utility purchasing electricity on the wholesale day-ahead marke
 4. **Primary Evaluation Window:** Specifically evaluates procurement decisions made across **January 1–31, 2026** (delivering **January 2–February 1, 2026** across **744 delivery hours**).
 5. **Decision Cutoff Sensitivity Matrix:** Evaluates how shifting internal decision cutoffs (09:00, 11:00, 14:00, 17:00 UTC) impacts forecast accuracy.
 
-### Visual Intelligence Console
-
-![WindSight Executive Analytics Console](docs/screenshots/dashboard_overview.png)
-*Figure 1: Executive KPI scorecard, Generation Outturn vs. Point-in-Time Forecast (Recharts), and procurement criteria coverage.*
-
-![Cutoff Sensitivity Matrix and 744h Diurnal Hourly Profile](docs/screenshots/cutoff_sensitivity_and_diurnal.png)
-*Figure 2: Cutoff Sensitivity Matrix (09:00, 11:00, 14:00, 17:00 UTC with $\Delta\text{ MAE}$) and 31-day January diurnal profile (Hour 0–23).*
-
-![Interval Audit Records and CSV Export](docs/screenshots/interval_table_and_csv.png)
-*Figure 3: Searchable interval-by-interval audit table and RFC-4180 compliant CSV export generator.*
-
----
 
 ## 2. Architecture & Data Flow
 
