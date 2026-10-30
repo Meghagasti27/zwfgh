@@ -9,8 +9,8 @@ export const MethodologyModal: React.FC<MethodologyModalProps> = ({ isOpen, onCl
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#202521]/40 backdrop-blur-xs overflow-y-auto">
-      <div className="bg-white border border-[#E7E5DE] rounded-2xl max-w-3xl w-full max-h-[90vh] flex flex-col shadow-xl">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#1a1a2e]/50 backdrop-blur-sm overflow-y-auto">
+      <div className="bg-white border border-[#e8eaf6] rounded-2xl max-w-3xl w-full max-h-[90vh] flex flex-col shadow-2xl">
         {/* Modal Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-[#E7E5DE]">
           <div className="flex items-center gap-2.5 text-[#202521] font-semibold text-base">

@@ -11,144 +11,92 @@ interface CutoffSensitivityCardProps {
 }
 
 export const CutoffSensitivityCard: React.FC<CutoffSensitivityCardProps> = ({
-  comparisonData,
-  currentPreset,
-  onSelectPreset,
-  loading
+  comparisonData, currentPreset, onSelectPreset, loading
 }) => {
   if (loading || !comparisonData) {
     return (
-      <div className="bg-white border border-[#E7E5DE] rounded-xl p-5 text-xs text-[#777C76] animate-pulse">
-        Evaluating cutoff sensitivity across 09:00, 11:00, 14:00, and 17:00 UTC...
+      <div className="ws-card p-4">
+        <div className="flex items-center gap-2 mb-3">
+          <Clock className="w-4 h-4 text-[#6366f1]" />
+          <h3 className="text-sm font-bold text-[#1a1a2e] m-0">Cutoff Sensitivity</h3>
+        </div>
+        <div className="h-[240px] flex items-center justify-center text-xs text-[#94a3b8] animate-pulse">
+          Loading…
+        </div>
       </div>
     );
   }
 
-  const { comparisons, delivery_date, decision_date } = comparisonData;
+  const { comparisons, delivery_date } = comparisonData;
 
   return (
-    <div className="bg-white border border-[#E7E5DE] rounded-xl p-5 shadow-2xs">
-      {/* Header */}
-      <div className="flex flex-wrap items-center justify-between mb-4 pb-3 border-b border-[#E7E5DE] gap-2">
-        <div>
-          <div className="flex items-center gap-2">
-            <Clock className="w-4 h-4 text-[#176B4D]" />
-            <h3 className="text-base font-semibold text-[#202521] m-0 tracking-tight">
-              Decision Cutoff Sensitivity Matrix
-            </h3>
-          </div>
-          <p className="text-xs text-[#777C76] mt-0.5">
-            Forecast accuracy across trading cutoffs for delivery on {delivery_date} (Decided {decision_date})
-          </p>
+    <div className="ws-card p-4">
+      <div className="flex items-center justify-between mb-3 pb-2 border-b border-[#e8eaf6]">
+        <div className="flex items-center gap-2">
+          <Clock className="w-4 h-4 text-[#6366f1]" />
+          <h3 className="text-sm font-bold text-[#1a1a2e] m-0">Cutoff Sensitivity</h3>
         </div>
-
-        <div className="text-xs text-[#777C76]">
-          Baseline: <span className="font-semibold text-[#202521]">11:00 UTC (Midday Review)</span>
-        </div>
+        <span className="text-[10px] text-[#94a3b8] font-mono">{delivery_date}</span>
       </div>
 
-      {/* 4-Column Decision Support Matrix */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+      <div className="grid grid-cols-2 gap-2">
         {comparisons.map((item) => {
           const isSelected = currentPreset === item.preset;
           const isBaseline = item.preset === '11:00';
-          const isBetterThanBaseline = item.delta_mae_mw < 0;
-          const isWorseThanBaseline = item.delta_mae_mw > 0;
+          const isBetter   = item.delta_mae_mw < 0;
+          const isWorse    = item.delta_mae_mw > 0;
 
           return (
-            <div
-              key={item.preset}
+            <div key={item.preset}
               onClick={() => onSelectPreset(item.preset)}
-              className={`p-3.5 rounded-xl border transition-all cursor-pointer flex flex-col justify-between ${
+              className={`p-2.5 rounded-lg border transition-all cursor-pointer ${
                 isSelected
-                  ? 'bg-[#F7F6F2]/70 border-[#176B4D] ring-1 ring-[#176B4D]/30 shadow-2xs'
-                  : 'bg-white border-[#E7E5DE] hover:border-[#176B4D]/40 hover:bg-[#F7F6F2]/30'
-              }`}
-            >
-              <div>
-                {/* Header inside card */}
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-1.5">
-                    <span className="font-mono text-sm font-bold text-[#202521]">
-                      {item.cutoff_time} UTC
+                  ? 'border-[#6366f1] bg-[#eef0ff]'
+                  : 'border-[#e8eaf6] hover:border-[#6366f1]/40 hover:bg-[#f8f9ff]'
+              }`}>
+
+              <div className="flex items-center justify-between mb-1">
+                <span className="font-mono text-xs font-bold text-[#1a1a2e]">{item.cutoff_time}</span>
+                <div className="flex items-center gap-1">
+                  {isBaseline && (
+                    <span className="text-[9px] font-semibold px-1 py-0.5 rounded bg-[#176B4D]/10 text-[#176B4D]">Base</span>
+                  )}
+                  {isSelected && <Check className="w-3 h-3 text-[#6366f1]" />}
+                </div>
+              </div>
+
+              <div className="space-y-0.5 text-[11px]">
+                <div className="flex justify-between">
+                  <span className="text-[#94a3b8]">MAE</span>
+                  <span className="font-mono font-bold text-[#1a1a2e]">{formatMW(item.mae_mw)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-[#94a3b8]">Bias</span>
+                  <span className={`font-mono font-medium ${item.bias_mw > 0 ? 'text-amber-700' : 'text-[#3b82f6]'}`}>
+                    {formatSignedMW(item.bias_mw)}
+                  </span>
+                </div>
+              </div>
+
+              {!isBaseline && (
+                <div className="mt-1.5 pt-1 border-t border-[#e8eaf6] flex items-center justify-between text-[10px]">
+                  <span className="text-[#94a3b8]">vs 11:00</span>
+                  {isBetter ? (
+                    <span className="font-mono font-bold text-emerald-600 flex items-center gap-0.5">
+                      <TrendingDown className="w-3 h-3" />{item.delta_mae_mw} MW
                     </span>
-                    {isBaseline && (
-                      <span className="text-[9px] font-medium px-1.5 py-0.2 rounded bg-[#176B4D]/10 text-[#176B4D] border border-[#176B4D]/20">
-                        Baseline
-                      </span>
-                    )}
-                  </div>
-                  {isSelected && (
-                    <span className="text-[11px] flex items-center gap-1 text-[#176B4D] font-semibold">
-                      <Check className="w-3.5 h-3.5" /> Active
+                  ) : isWorse ? (
+                    <span className="font-mono font-bold text-amber-700 flex items-center gap-0.5">
+                      <TrendingUp className="w-3 h-3" />+{item.delta_mae_mw} MW
                     </span>
+                  ) : (
+                    <span className="text-[#94a3b8] font-mono">0 MW</span>
                   )}
                 </div>
-
-                <div className="text-xs text-[#777C76] line-clamp-1 mb-3">
-                  {item.preset === '09:00' && 'Pre-Auction Gate Closure'}
-                  {item.preset === '11:00' && 'Midday Position Review (Baseline)'}
-                  {item.preset === '14:00' && 'Afternoon Rebalancing'}
-                  {item.preset === '17:00' && 'Evening Position Close'}
-                </div>
-
-                {/* Metrics */}
-                <div className="space-y-1.5 border-t border-[#E7E5DE] pt-2.5 text-xs">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[#777C76]">MAE:</span>
-                    <span className="font-mono font-bold text-[#202521]">{formatMW(item.mae_mw)}</span>
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <span className="text-[#777C76]">Bias:</span>
-                    <span
-                      className={`font-mono font-medium ${
-                        item.bias_mw > 0 ? 'text-amber-800' : 'text-[#2B6CB0]'
-                      }`}
-                    >
-                      {formatSignedMW(item.bias_mw)}
-                    </span>
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <span className="text-[#777C76]">nMAE:</span>
-                    <span className="font-mono text-[#176B4D] font-medium">{item.nmae_pct.toFixed(1)}%</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Delta vs 11:00 UTC */}
-              <div className="mt-3 pt-2.5 border-t border-[#E7E5DE] flex items-center justify-between text-xs">
-                <span className="text-[#777C76]">vs 11:00 Baseline:</span>
-                {isBaseline ? (
-                  <span className="text-[#777C76] font-mono">Reference</span>
-                ) : isBetterThanBaseline ? (
-                  <span className="font-mono font-bold text-[#176B4D] flex items-center gap-0.5">
-                    <TrendingDown className="w-3.5 h-3.5" />
-                    {item.delta_mae_mw} MW
-                  </span>
-                ) : isWorseThanBaseline ? (
-                  <span className="font-mono font-bold text-amber-800 flex items-center gap-0.5">
-                    <TrendingUp className="w-3.5 h-3.5" />
-                    +{item.delta_mae_mw} MW
-                  </span>
-                ) : (
-                  <span className="text-[#777C76] font-mono">0 MW</span>
-                )}
-              </div>
+              )}
             </div>
           );
         })}
-      </div>
-
-      {/* Analytical Footnote */}
-      <div className="mt-3.5 pt-2.5 border-t border-[#E7E5DE]/80 text-[11px] text-[#777C76] flex items-center justify-between">
-        <span>
-          Note: 11:00 UTC is an analytical desk review baseline, not an official auction deadline.
-        </span>
-        <span className="hidden sm:inline">
-          Historical lower MAE does not guarantee future outperformance.
-        </span>
       </div>
     </div>
   );

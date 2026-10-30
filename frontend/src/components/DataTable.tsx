@@ -9,14 +9,11 @@ interface DataTableProps {
   decisionDate: string;
   cutoffTime: string;
   viewMode: 'hourly' | 'half_hourly';
+  title?: string;
 }
 
 export const DataTable: React.FC<DataTableProps> = ({
-  intervals,
-  deliveryDate,
-  decisionDate,
-  cutoffTime,
-  viewMode
+  intervals, deliveryDate, decisionDate, cutoffTime, viewMode, title
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -30,103 +27,99 @@ export const DataTable: React.FC<DataTableProps> = ({
     );
   });
 
-  const handleExport = () => {
-    exportAnalysisToCSV(intervals, deliveryDate, decisionDate, cutoffTime, viewMode);
-  };
+  const handleExport = () => exportAnalysisToCSV(intervals, deliveryDate, decisionDate, cutoffTime, viewMode);
 
   return (
-    <div className="bg-white border border-[#E7E5DE] rounded-xl p-5 shadow-2xs space-y-3.5">
-      {/* Header & Export Action */}
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#E7E5DE] pb-3">
+    <div className="ws-card p-5 space-y-3.5">
+      {/* Header */}
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#e8eaf6] pb-3">
         <div className="flex items-center gap-2">
-          <Table className="w-4 h-4 text-[#176B4D]" />
-          <h3 className="text-base font-semibold text-[#202521] m-0 tracking-tight">
-            Interval Audit &amp; Outturn Records
+          <Table className="w-4 h-4 text-[#6366f1]" />
+          <h3 className="text-sm font-bold text-[#1a1a2e] m-0">
+            {title || 'Complete Interval Audit Records'}
           </h3>
-          <span className="text-xs text-[#777C76] font-mono">
+          <span className="text-xs text-[#94a3b8] font-mono">
             ({filtered.length} intervals)
           </span>
         </div>
 
         <div className="flex items-center gap-2.5">
-          {/* Search Filter */}
+          {/* Search */}
           <div className="relative">
-            <Search className="w-3.5 h-3.5 text-[#777C76] absolute left-2.5 top-1/2 -translate-y-1/2" />
+            <Search className="w-3.5 h-3.5 text-[#94a3b8] absolute left-2.5 top-1/2 -translate-y-1/2" />
             <input
-              type="text"
-              placeholder="Search interval / time..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="bg-[#F7F6F2] border border-[#E7E5DE] text-[#202521] text-xs rounded-lg pl-8 pr-3 py-1.5 focus:outline-hidden focus:ring-1 focus:ring-[#176B4D] w-48"
+              type="text" placeholder="Search interval / time…"
+              value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
+              className="bg-[#f8f9ff] border border-[#e2e8f0] text-[#1a1a2e] text-xs rounded-lg pl-8 pr-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-[#6366f1]/30 w-44 transition-shadow"
             />
           </div>
 
-          {/* Export CSV Button */}
+          {/* Export */}
           <button
             onClick={handleExport}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white hover:bg-[#F7F6F2] text-[#202521] border border-[#E7E5DE] text-xs font-semibold shadow-2xs transition-colors cursor-pointer"
-            title="Download complete analysis as CSV"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white hover:bg-[#f8f9ff] text-[#64748b] border border-[#e2e8f0] text-xs font-semibold shadow-sm transition-colors cursor-pointer"
+            title="Download analysis as CSV"
           >
-            <Download className="w-3.5 h-3.5 text-[#176B4D]" />
-            <span>Export CSV</span>
+            <Download className="w-3.5 h-3.5 text-[#6366f1]" />
+            Export CSV
           </button>
         </div>
       </div>
 
-      {/* Table Container */}
-      <div className="overflow-x-auto max-h-[420px] overflow-y-auto border border-[#E7E5DE] rounded-lg">
+      {/* Table */}
+      <div className="overflow-x-auto max-h-[400px] overflow-y-auto border border-[#e8eaf6] rounded-xl">
         <table className="w-full text-left text-xs border-collapse">
-          <thead className="bg-[#F7F6F2] text-[#777C76] sticky top-0 border-b border-[#E7E5DE] text-[11px] font-semibold tracking-wider uppercase z-10">
+          <thead className="bg-[#f8f9ff] text-[#94a3b8] sticky top-0 border-b border-[#e8eaf6] text-[10px] font-semibold tracking-wider uppercase z-10">
             <tr>
-              <th className="py-2.5 px-3.5">Interval</th>
-              <th className="py-2.5 px-3.5">Time (UTC)</th>
-              <th className="py-2.5 px-3.5">Span</th>
-              <th className="py-2.5 px-3.5 text-right">Actual Outturn</th>
-              <th className="py-2.5 px-3.5 text-right">Point-in-Time Forecast</th>
-              <th className="py-2.5 px-3.5 text-right">Variance (Error)</th>
-              <th className="py-2.5 px-3.5">Publish Timestamp (UTC)</th>
-              <th className="py-2.5 px-3.5 text-center">Status</th>
+              <th className="py-3 px-4">Interval</th>
+              <th className="py-3 px-4">Time (UTC)</th>
+              <th className="py-3 px-4">Span</th>
+              <th className="py-3 px-4 text-right">Actual Outturn</th>
+              <th className="py-3 px-4 text-right">PIT Forecast</th>
+              <th className="py-3 px-4 text-right">Variance</th>
+              <th className="py-3 px-4">Publish Time (UTC)</th>
+              <th className="py-3 px-4 text-center">Status</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-[#E7E5DE]/80 font-mono text-[#202521]">
+          <tbody className="divide-y divide-[#e8eaf6] font-mono text-[#1a1a2e]">
             {filtered.map((item) => {
-              const isOver = item.error_mw !== null && item.error_mw > 0;
+              const isOver  = item.error_mw !== null && item.error_mw > 0;
               const isUnder = item.error_mw !== null && item.error_mw < 0;
 
               return (
-                <tr key={item.interval_id} className="hover:bg-[#F7F6F2]/50 transition-colors">
-                  <td className="py-2 px-3.5 font-semibold text-[#202521]">{item.interval_id}</td>
-                  <td className="py-2 px-3.5 text-[#777C76]">{item.start_time.slice(11, 16)}</td>
-                  <td className="py-2 px-3.5 text-[#777C76] font-sans">
-                    {item.sp_span || (item.settlement_period ? `SP ${item.settlement_period}` : `Hour ${item.hour}`)}
+                <tr key={item.interval_id} className="ws-table-row transition-colors">
+                  <td className="py-2.5 px-4 font-semibold text-[#1a1a2e] text-[11px]">{item.interval_id}</td>
+                  <td className="py-2.5 px-4 text-[#64748b] text-[11px]">{item.start_time.slice(11, 16)}</td>
+                  <td className="py-2.5 px-4 text-[#64748b] font-sans text-[11px]">
+                    {item.sp_span || (item.settlement_period ? `SP ${item.settlement_period}` : `H ${item.hour}`)}
                   </td>
-                  <td className="py-2 px-3.5 text-right text-[#176B4D] font-semibold">
+                  <td className="py-2.5 px-4 text-right font-semibold text-emerald-700 text-[11px]">
                     {formatMW(item.actual_mw)}
                   </td>
-                  <td className="py-2 px-3.5 text-right text-[#2B6CB0] font-semibold">
+                  <td className="py-2.5 px-4 text-right font-semibold text-[#3b82f6] text-[11px]">
                     {formatMW(item.forecast_mw)}
                   </td>
-                  <td className="py-2 px-3.5 text-right">
-                    <span
-                      className={`inline-block px-1.5 py-0.5 rounded text-[11px] font-bold ${
-                        isOver
-                          ? 'text-amber-800 bg-amber-50 border border-amber-200'
-                          : isUnder
-                          ? 'text-blue-800 bg-blue-50 border border-blue-200'
-                          : 'text-[#777C76]'
-                      }`}
-                    >
+                  <td className="py-2.5 px-4 text-right text-[11px]">
+                    <span className={`inline-block px-2 py-0.5 rounded-md text-[11px] font-bold ${
+                      isOver
+                        ? 'text-amber-800 bg-amber-50 border border-amber-200'
+                        : isUnder
+                        ? 'text-blue-800 bg-blue-50 border border-blue-200'
+                        : 'text-[#94a3b8]'
+                    }`}>
                       {formatSignedMW(item.error_mw)}
                     </span>
                   </td>
-                  <td className="py-2 px-3.5 text-[#777C76] text-[11px]">
+                  <td className="py-2.5 px-4 text-[#94a3b8] text-[11px]">
                     {item.publish_time ? item.publish_time.slice(0, 16).replace('T', ' ') : '—'}
                   </td>
-                  <td className="py-2 px-3.5 text-center font-sans text-[11px]">
+                  <td className="py-2.5 px-4 text-center font-sans text-[11px]">
                     {item.status === 'complete' ? (
-                      <span className="text-[#777C76]">Delivered</span>
+                      <span className="badge-delivered inline-block px-2 py-0.5 rounded-full text-[10px] font-semibold">
+                        Delivered
+                      </span>
                     ) : (
-                      <span className="inline-block px-2 py-0.5 rounded text-[10px] uppercase font-semibold bg-rose-50 text-rose-700 border border-rose-200">
+                      <span className="badge-missing inline-block px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase">
                         {item.status}
                       </span>
                     )}

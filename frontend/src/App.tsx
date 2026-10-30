@@ -1,12 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Header } from './components/Header';
-import { ControlBar } from './components/ControlBar';
-import { KpiGrid } from './components/KpiGrid';
-import { ForecastChart } from './components/ForecastChart';
-import { ErrorAnalysisSection } from './components/ErrorAnalysisSection';
-import { CutoffSensitivityCard } from './components/CutoffSensitivityCard';
-import { DataTable } from './components/DataTable';
-import { MethodologyModal } from './components/MethodologyModal';
+import { Sidebar }               from './components/Sidebar';
+import { TopHeader }             from './components/TopHeader';
+import { ControlToolbar }        from './components/ControlToolbar';
+import { DashboardView }         from './components/DashboardView';
+import { AnalyticsView }         from './components/AnalyticsView';
+import { MethodologyModal }      from './components/MethodologyModal';
 import {
   fetchHealth,
   fetchAvailableDates,
@@ -22,49 +20,82 @@ import type {
   MonthlySummaryResponse,
   CutoffComparisonResponse
 } from './types/api';
-import { AlertCircle, RefreshCw, X, Check } from 'lucide-react';
+import { AlertCircle, RefreshCw, X } from 'lucide-react';
 
 export const App: React.FC = () => {
-  // App state
-  const [health, setHealth] = useState<HealthResponse | null>(null);
+  // ── Router state: '/' (Dashboard) or '/analytics' (Analytics) ────────
+  const [currentRoute, setCurrentRoute]   = useState<'/' | '/analytics'>(() => {
+    if (typeof window !== 'undefined') {
+      const path = window.location.pathname.toLowerCase();
+      const hash = window.location.hash.toLowerCase();
+      if (path === '/analytics' || path.startsWith('/analytics') || hash.includes('analytics')) {
+        return '/analytics';
+      }
+    }
+    return '/';
+  });
+
+  // ── App state ─────────────────────────────────────────────────────────
+  const [health, setHealth]               = useState<HealthResponse | null>(null);
   const [healthLoading, setHealthLoading] = useState(true);
-  const [datesInfo, setDatesInfo] = useState<AvailableDatesResponse | null>(null);
+  const [datesInfo, setDatesInfo]         = useState<AvailableDatesResponse | null>(null);
 
-  // Analysis parameters
-  const [selectedDate, setSelectedDate] = useState('2026-01-14');
-  const [dateMode, setDateMode] = useState<'decision' | 'delivery'>('decision');
-  const [cutoffPreset, setCutoffPreset] = useState('11:00');
-  const [customCutoff, setCustomCutoff] = useState('');
-  const [viewMode, setViewMode] = useState<'hourly' | 'half_hourly'>('hourly');
+  // ── Analysis parameters (Shared across Dashboard and Analytics) ───────
+  const [selectedDate,   setSelectedDate]   = useState('2026-01-14');
+  const [dateMode,       setDateMode]       = useState<'decision' | 'delivery'>('decision');
+  const [cutoffPreset,   setCutoffPreset]   = useState('11:00');
+  const [customCutoff,   setCustomCutoff]   = useState('');
+  const [viewMode,       setViewMode]       = useState<'hourly' | 'half_hourly'>('hourly');
 
-  // Analysis data state
-  const [analysis, setAnalysis] = useState<DailyAnalysisResponse | null>(null);
-  const [monthlyData, setMonthlyData] = useState<MonthlySummaryResponse | null>(null);
-  const [cutoffComparison, setCutoffComparison] = useState<CutoffComparisonResponse | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [monthlyLoading, setMonthlyLoading] = useState(false);
-  const [cutoffLoading, setCutoffLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  // ── Analysis data ────────────────────────────────────────────────────
+  const [analysis,          setAnalysis]          = useState<DailyAnalysisResponse | null>(null);
+  const [monthlyData,       setMonthlyData]       = useState<MonthlySummaryResponse | null>(null);
+  const [cutoffComparison,  setCutoffComparison]  = useState<CutoffComparisonResponse | null>(null);
+  const [loading,           setLoading]           = useState(false);
+  const [monthlyLoading,    setMonthlyLoading]    = useState(false);
+  const [cutoffLoading,     setCutoffLoading]     = useState(false);
+  const [error,             setError]             = useState<string | null>(null);
 
-  // Operational states
-  const [syncing, setSyncing] = useState(false);
-  const [syncMessage, setSyncMessage] = useState<string | null>(null);
+  // ── Operational states ───────────────────────────────────────────────
+  const [syncing,           setSyncing]           = useState(false);
+  const [syncMessage,       setSyncMessage]       = useState<string | null>(null);
   const [isMethodologyOpen, setIsMethodologyOpen] = useState(false);
 
-  // Initial setup: health & dates
+  // ── Client-side SPA Router with HTML5 History & Back/Forward Support ──
+  const navigateTo = useCallback((route: '/' | '/analytics') => {
+    setCurrentRoute(route);
+    if (window.location.pathname !== route) {
+      window.history.pushState({ route }, '', route);
+    }
+  }, []);
+
+  useEffect(() => {
+    const handleLocationChange = () => {
+      const path = window.location.pathname.toLowerCase();
+      const hash = window.location.hash.toLowerCase();
+      if (path === '/analytics' || path.startsWith('/analytics') || hash.includes('analytics')) {
+        setCurrentRoute('/analytics');
+      } else {
+        setCurrentRoute('/');
+      }
+    };
+
+    window.addEventListener('popstate', handleLocationChange);
+    window.addEventListener('hashchange', handleLocationChange);
+    return () => {
+      window.removeEventListener('popstate', handleLocationChange);
+      window.removeEventListener('hashchange', handleLocationChange);
+    };
+  }, []);
+
+  // ── Initial setup: Health & Available dates ──────────────────────────
   useEffect(() => {
     async function init() {
       try {
         setHealthLoading(true);
         const [hRes, dRes] = await Promise.all([
-          fetchHealth().catch((err) => {
-            console.error('Health check failed:', err);
-            return null;
-          }),
-          fetchAvailableDates().catch((err) => {
-            console.error('Available dates check failed:', err);
-            return null;
-          })
+          fetchHealth().catch((err) => { console.error('Health check failed:', err); return null; }),
+          fetchAvailableDates().catch((err) => { console.error('Available dates failed:', err); return null; })
         ]);
         setHealth(hRes);
         setDatesInfo(dRes);
@@ -75,7 +106,7 @@ export const App: React.FC = () => {
     init();
   }, []);
 
-  // Fetch daily analysis
+  // ── Data loaders ─────────────────────────────────────────────────────
   const loadDailyAnalysis = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -95,15 +126,10 @@ export const App: React.FC = () => {
     }
   }, [selectedDate, dateMode, cutoffPreset, customCutoff, viewMode]);
 
-  // Fetch cutoff sensitivity comparison
   const loadCutoffSensitivity = useCallback(async () => {
     setCutoffLoading(true);
     try {
-      const data = await fetchCutoffComparison({
-        date: selectedDate,
-        date_mode: dateMode,
-        view_mode: viewMode
-      });
+      const data = await fetchCutoffComparison({ date: selectedDate, date_mode: dateMode, view_mode: viewMode });
       setCutoffComparison(data);
     } catch (err: any) {
       console.error('Failed to load cutoff sensitivity:', err);
@@ -112,7 +138,6 @@ export const App: React.FC = () => {
     }
   }, [selectedDate, dateMode, viewMode]);
 
-  // Fetch monthly summary
   const loadMonthlySummary = useCallback(async () => {
     setMonthlyLoading(true);
     try {
@@ -129,7 +154,7 @@ export const App: React.FC = () => {
     }
   }, [cutoffPreset, customCutoff, viewMode]);
 
-  // Initial & reactive analysis load
+  // ── Reactive data reload on param change ─────────────────────────────
   useEffect(() => {
     let active = true;
     const run = async () => {
@@ -140,19 +165,16 @@ export const App: React.FC = () => {
       loadMonthlySummary();
     };
     run();
-    return () => {
-      active = false;
-    };
+    return () => { active = false; };
   }, [loadDailyAnalysis, loadCutoffSensitivity, loadMonthlySummary]);
 
-  // Sync handler
+  // ── Elexon BMRS Synchronization Action ───────────────────────────────
   const handleSync = async () => {
     setSyncing(true);
     setSyncMessage(null);
     try {
       const res = await triggerSync();
       setSyncMessage(res.message);
-      // Refresh health & current analysis
       const h = await fetchHealth();
       setHealth(h);
       loadDailyAnalysis();
@@ -166,157 +188,119 @@ export const App: React.FC = () => {
     }
   };
 
-  return (
-    <div className="min-h-screen bg-[#F7F6F2] text-[#202521] flex flex-col font-sans">
-      {/* 1. Header */}
-      <Header
-        health={health}
-        healthLoading={healthLoading}
-        onSync={handleSync}
-        syncing={syncing}
-      />
+  const handleApply = () => {
+    loadDailyAnalysis();
+    loadCutoffSensitivity();
+    loadMonthlySummary();
+  };
 
-      {/* 2. Control Bar */}
-      <ControlBar
-        datesInfo={datesInfo}
-        selectedDate={selectedDate}
-        onDateChange={setSelectedDate}
-        dateMode={dateMode}
-        onDateModeChange={setDateMode}
-        cutoffPreset={cutoffPreset}
-        onCutoffPresetChange={setCutoffPreset}
-        customCutoff={customCutoff}
-        onCustomCutoffChange={setCustomCutoff}
-        viewMode={viewMode}
-        onViewModeChange={setViewMode}
-        onApply={() => {
-          loadDailyAnalysis();
-          loadCutoffSensitivity();
-          loadMonthlySummary();
-        }}
-        loading={loading}
+  return (
+    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: '#EEF0FF' }}>
+
+      {/* Sidebar: Navigates between '/' (Dashboard) and '/analytics' (Analytics) */}
+      <Sidebar
+        currentRoute={currentRoute}
+        onNavigate={navigateTo}
         onOpenMethodology={() => setIsMethodologyOpen(true)}
       />
 
-      {/* Sync Success Notification */}
-      {syncMessage && (
-        <div className="bg-[#176B4D]/10 border-b border-[#176B4D]/20 px-6 py-2 text-xs text-[#176B4D] font-medium text-center flex items-center justify-center gap-2">
-          <Check className="w-3.5 h-3.5" />
-          <span>{syncMessage}</span>
-        </div>
-      )}
+      {/* Main area */}
+      <div style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
 
-      {/* Main Dashboard Layout */}
-      <main className="max-w-7xl mx-auto px-6 py-6 w-full flex-1 space-y-5">
-        {/* Error Notification Banner */}
-        {error && (
-          <div className="bg-rose-50 border border-rose-200 rounded-xl p-4 flex items-start justify-between gap-3 text-xs shadow-xs">
-            <div className="flex items-start gap-3">
-              <AlertCircle className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
-              <div>
-                <h4 className="font-semibold text-rose-900 m-0">Analysis Query Error</h4>
-                <p className="text-rose-700 mt-1 leading-relaxed">{error}</p>
+        {/* Top Header: Branding, Title, Elexon BMRS Live Connection */}
+        <TopHeader
+          currentRoute={currentRoute}
+          health={health}
+          healthLoading={healthLoading}
+        />
+
+        <main className="ws-main">
+
+          {/* Compact Control Toolbar: Perspective, Date, Cutoff, Resolution, Apply, Sync */}
+          <ControlToolbar
+            datesInfo={datesInfo}
+            selectedDate={selectedDate}
+            onDateChange={setSelectedDate}
+            dateMode={dateMode}
+            onDateModeChange={setDateMode}
+            cutoffPreset={cutoffPreset}
+            onCutoffPresetChange={(preset: string) => { setCutoffPreset(preset); setCustomCutoff(''); }}
+            customCutoff={customCutoff}
+            onCustomCutoffChange={setCustomCutoff}
+            viewMode={viewMode}
+            onViewModeChange={setViewMode}
+            onApply={handleApply}
+            loading={loading}
+            syncing={syncing}
+            syncMessage={syncMessage}
+            onSync={handleSync}
+          />
+
+          {/* Query Error Notification */}
+          {error && (
+            <div className="bg-rose-50 border border-rose-200 rounded-xl px-4 py-3 flex items-center justify-between gap-3 text-xs">
+              <div className="flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+                <span className="text-rose-700">{error}</span>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={handleApply}
+                  className="px-2.5 py-1 bg-rose-600 hover:bg-rose-700 text-white font-medium rounded-md transition-colors cursor-pointer flex items-center gap-1"
+                >
+                  <RefreshCw className="w-3 h-3" /> Retry
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setError(null)}
+                  className="p-0.5 text-rose-400 hover:text-rose-600 cursor-pointer"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
               </div>
             </div>
-            <div className="flex items-center gap-2 shrink-0">
-              <button
-                onClick={() => {
-                  loadDailyAnalysis();
-                  loadCutoffSensitivity();
-                }}
-                className="px-3 py-1 bg-rose-600 hover:bg-rose-700 text-white font-medium rounded-lg transition-colors cursor-pointer flex items-center gap-1.5"
-              >
-                <RefreshCw className="w-3 h-3" />
-                Retry
-              </button>
-              <button
-                onClick={() => setError(null)}
-                className="p-1 text-rose-500 hover:text-rose-700 transition-colors cursor-pointer"
-                title="Dismiss"
-              >
-                <X className="w-4 h-4" />
-              </button>
+          )}
+
+          {/* Loading Skeleton */}
+          {loading && !analysis ? (
+            <div className="flex flex-col items-center justify-center gap-3 text-[#64748b]" style={{ minHeight: '50vh' }}>
+              <div className="w-7 h-7 border-2 border-[#176B4D] border-t-transparent rounded-full animate-spin" />
+              <span className="text-xs font-medium">Reconstructing point-in-time forecast from Elexon lakehouse…</span>
             </div>
-          </div>
-        )}
+          ) : analysis ? (
+            currentRoute === '/' ? (
+              /* 1. Complete Dashboard Page ('/') with all 9 core sections */
+              <DashboardView
+                analysis={analysis}
+                monthlyData={monthlyData}
+                cutoffComparison={cutoffComparison}
+                cutoffPreset={cutoffPreset}
+                onSelectCutoffPreset={(preset) => { setCutoffPreset(preset); setCustomCutoff(''); }}
+                viewMode={viewMode}
+                cutoffLoading={cutoffLoading}
+                monthlyLoading={monthlyLoading}
+              />
+            ) : (
+              /* 2. Separate Detailed Analytics Page ('/analytics') with 4 focused sections */
+              <AnalyticsView
+                analysis={analysis}
+                cutoffComparison={cutoffComparison}
+                cutoffPreset={cutoffPreset}
+                onSelectCutoffPreset={(preset) => { setCutoffPreset(preset); setCustomCutoff(''); }}
+                viewMode={viewMode}
+                cutoffLoading={cutoffLoading}
+              />
+            )
+          ) : null}
+        </main>
+      </div>
 
-        {loading && !analysis ? (
-          /* Initial Loading Skeleton */
-          <div className="h-96 flex flex-col items-center justify-center space-y-3 text-[#777C76]">
-            <div className="w-8 h-8 border-2 border-[#176B4D] border-t-transparent rounded-full animate-spin" />
-            <span className="text-xs font-medium">Reconstructing point-in-time forecast from Elexon lakehouse...</span>
-          </div>
-        ) : analysis ? (
-          <>
-            {/* 3. Bento KPI Grid */}
-            <KpiGrid
-              metrics={analysis.metrics}
-              coverage={analysis.coverage}
-              viewMode={viewMode}
-            />
-
-            {/* 4. Forecast vs Actual Centerpiece Chart */}
-            <ForecastChart
-              intervals={analysis.intervals}
-              viewMode={viewMode}
-              deliveryDate={analysis.delivery_date}
-            />
-
-            {/* 5. Cutoff Sensitivity Matrix */}
-            <CutoffSensitivityCard
-              comparisonData={cutoffComparison}
-              currentPreset={cutoffPreset}
-              onSelectPreset={(preset) => {
-                setCutoffPreset(preset);
-                setCustomCutoff('');
-              }}
-              loading={cutoffLoading}
-            />
-
-            {/* 6. Error & Horizon Analysis */}
-            <ErrorAnalysisSection
-              intervals={analysis.intervals}
-              viewMode={viewMode}
-              monthlyData={monthlyData}
-              monthlyLoading={monthlyLoading}
-            />
-
-            {/* 7. Detailed Audit Records Data Table with CSV Export */}
-            <DataTable
-              intervals={analysis.intervals}
-              deliveryDate={analysis.delivery_date}
-              decisionDate={analysis.decision_date}
-              cutoffTime={analysis.cutoff_time}
-              viewMode={viewMode}
-            />
-          </>
-        ) : null}
-      </main>
-
-      {/* Methodology Modal */}
+      {/* Methodology & Market Context Modal */}
       <MethodologyModal
         isOpen={isMethodologyOpen}
         onClose={() => setIsMethodologyOpen(false)}
       />
-
-      {/* Institutional Footer */}
-      <footer className="bg-white border-t border-[#E7E5DE] px-6 py-4 mt-auto">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between text-xs text-[#777C76] gap-2">
-          <div>
-            WindSight &copy; 2026. Institutional Electricity Procurement Forecast Intelligence Platform.
-          </div>
-          <div className="flex items-center gap-4">
-            <span>Data Sources: Elexon BMRS (FUELHH actuals &amp; WINDFOR forecasts)</span>
-            <span>&bull;</span>
-            <button
-              onClick={() => setIsMethodologyOpen(true)}
-              className="text-[#202521] hover:text-[#176B4D] font-medium transition-colors cursor-pointer"
-            >
-              Methodology &amp; Market Context
-            </button>
-          </div>
-        </div>
-      </footer>
     </div>
   );
 };
