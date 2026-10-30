@@ -12,6 +12,17 @@
 [![Historical Coverage](https://img.shields.io/badge/January%20Coverage-100%25%20(744h)-success.svg)](https://data.elexon.co.uk)
 
 ---
+## Live Deployment
+
+**Application:** https://zwfgh.onrender.com
+
+**Health Check:** https://zwfgh.onrender.com/api/health
+
+**Platform:** Render
+
+**Deployment:** Docker-based FastAPI + React application.
+
+---
 
 ## 1. Product Overview & Screenshots
 
